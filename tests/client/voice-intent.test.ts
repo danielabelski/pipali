@@ -77,6 +77,68 @@ describe('parseAddressing', () => {
         expect(parseAddressing('Pip ali, run the report').addressed).toBe(true);
     });
 
+    // Verbatim transcripts of synthesized "Pipali" utterances returned by the
+    // speech model the platform serves. It hears the name as "people" plus a
+    // vowel, which is four to five letter edits from the spelling and so was
+    // rejected outright, taking the wake phrase with it.
+    test('matches the renderings the speech model actually returns', () => {
+        expect(parseAddressing('Hey peopley!')).toEqual({ addressed: true, payload: '' });
+        expect(parseAddressing('Peoply, go ahead.')).toEqual({ addressed: true, payload: 'go ahead.' });
+        expect(parseAddressing('Peoplely, summarize this file.').addressed).toBe(true);
+        expect(parseAddressing('Hey peopley, what is on my calendar?')).toEqual({
+            addressed: true,
+            payload: 'what is on my calendar?',
+        });
+        for (const s of ['Ok, pipili.', 'Ok, Peeply.', 'Hi Peepali, are you there?', 'Hi Peabolly, are you there?']) {
+            expect(parseAddressing(s).addressed).toBe(true);
+        }
+        // The closing /i/ however it lands in spelling, silent "e" excepted.
+        for (const w of ['Peepalee', 'Peoplie', 'Peopley', 'Peoply', 'Pipali']) {
+            expect(parseAddressing(`${w}, run it`)).toEqual({ addressed: true, payload: 'run it' });
+        }
+        // How the name came out of real dictation.
+        for (const w of ['Pipli', 'Piply', 'Pipley']) {
+            expect(parseAddressing(`Hey ${w}, run it`)).toEqual({ addressed: true, payload: 'run it' });
+        }
+    });
+
+    test('tolerates punctuation inside the name', () => {
+        expect(parseAddressing('People.ly, summarize this file.')).toEqual({
+            addressed: true,
+            payload: 'summarize this file.',
+        });
+    });
+
+    test('tolerates a mangled lead-in', () => {
+        expect(parseAddressing('Hei, peopley!').addressed).toBe(true);
+        expect(parseAddressing('Okey Pipali, run it')).toEqual({ addressed: true, payload: 'run it' });
+    });
+
+    test('steps over filler before the name', () => {
+        expect(parseAddressing('Um, Pipali, check the logs')).toEqual({ addressed: true, payload: 'check the logs' });
+        expect(parseAddressing('Well, people are saying it is fine').addressed).toBe(false);
+    });
+
+    // The price of matching by sound: the words sharing the name's consonants
+    // must stay out, or a room conversation wakes the session.
+    test('rejects the ordinary words that share the name’s consonants', () => {
+        for (const s of ['people are saying it is fine', 'pupils dilate in the dark', 'apply the patch', 'supply the token', 'reply to the thread', 'puppy is asleep']) {
+            expect(parseAddressing(s).addressed).toBe(false);
+        }
+        // These have the name's p and l, but not its second p.
+        for (const s of ['Play some music', 'Please play the next one', 'Polly wants a cracker', 'Paulie is coming over', 'Poly bags are cheaper']) {
+            expect(parseAddressing(s).addressed).toBe(false);
+        }
+    });
+
+    // A split name merges with the word after it, which must not get to supply
+    // the closing /i/.
+    test('rejects a name-like word followed by one that sounds like its ending', () => {
+        for (const s of ['People I know say so', 'Paul, I think so', 'People lie all the time']) {
+            expect(parseAddressing(s).addressed).toBe(false);
+        }
+    });
+
     test('rejects unaddressed ambient speech', () => {
         for (const s of ['the pipeline is broken', 'happily ever after', 'yes, exactly', 'can you pass the salt', '']) {
             expect(parseAddressing(s).addressed).toBe(false);

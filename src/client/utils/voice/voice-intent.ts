@@ -122,28 +122,102 @@ function editDistance(a: string, b: string): number {
     return prev[n]!;
 }
 
-const LEAD_INS = new Set(ADDRESS_LEAD_INS);
+/**
+ * Is this token one of the words allowed before the address word? The longer
+ * lead-ins match fuzzily, since the speech model mangles them too ("Hei" for
+ * "Hey"); two-letter ones are too short to tolerate an edit. Skipping a word
+ * that was not a lead-in costs nothing — it only matters when the address
+ * word follows it.
+ */
+function isLeadIn(token: string): boolean {
+    return ADDRESS_LEAD_INS.some((lead) => token === lead
+        || (lead.length >= 3 && token.length >= 3 && editDistance(token, lead) <= 1));
+}
+
+// Voicing is the first thing a speech model loses on an unfamiliar name
+// ("Bipali" for "Pipali"), so each voiced consonant folds onto its pair.
+const DEVOICED: Record<string, string> = { b: 'p', d: 't', g: 'k', v: 'f', z: 's' };
+
+/**
+ * Consonant skeleton of a word — what survives when a speech model writes down
+ * a name it does not know. Letters doubled in the spelling collapse
+ * ("Peabolly"), and a trailing "y" is the vowel it spells, not a consonant, so
+ * "peoply", "peopley" and "Peepalee" all reduce to the name's p·p·l.
+ *
+ * A consonant repeated across a vowel is two sounds and stays two: the name's
+ * second p is what keeps out "play", "Polly" and "poly". The exception is a
+ * doubled final consonant, which is how "people" + "ly" comes out ("Peoplely").
+ */
+function consonantSkeleton(word: string): string {
+    return word
+        .replace(/(.)\1+/g, '$1')
+        .replace(/y$/, '')
+        .replace(/[aeiou]/g, '')
+        .replace(/[bdgvz]/g, (c) => DEVOICED[c]!)
+        .replace(/(.)\1+$/, '$1');
+}
+
+const ADDRESS_SKELETON = consonantSkeleton(ADDRESS_NAME);
+
+/** The /i/ the name closes on, in each of the ways English spells it. */
+const CLOSING_I = /(?:ee|ie|ey|[iy])$/;
+
+/**
+ * Does this token sound like the address word, however it got spelled?
+ *
+ * Edit distance compares letters, and the renderings a speech model produces
+ * for "Pipali" — "peopley", "peoply", "peoplely" — are four to five letter
+ * edits away while being the same sounds. They share its consonant skeleton
+ * and its closing /i/.
+ *
+ * That closing vowel is what keeps the check narrow: the ordinary words with
+ * the same skeleton ("people", "pupil") end on the /l/. So the word has to end
+ * on the /i/, in any of the ways English spells it — but never on the lone
+ * silent "e" that ends "people". Requiring the same opening consonant rules
+ * out the rest ("bubbly").
+ */
+function soundsLikeAddress(token: string): boolean {
+    return token[0] === ADDRESS_NAME[0]
+        && CLOSING_I.test(token)
+        && consonantSkeleton(token) === ADDRESS_SKELETON;
+}
+
+/**
+ * One spoken token reduced to bare letters. normalizeUtterance turns internal
+ * punctuation into a space, which is right for an utterance and wrong for a
+ * word: the model punctuates inside the name it is guessing at ("People.ly"),
+ * and a candidate arriving as two words matches nothing.
+ */
+function addressCandidate(rawToken: string | undefined): string {
+    return (rawToken ?? '').toLowerCase().replace(/[^\p{L}]/gu, '');
+}
 
 /**
  * Does this open-context utterance address Pipali? Matches the address word as
- * the first token (after optional lead-ins like "hey"), fuzzily — STT mangles
- * the proper noun ("Bipali") and may split it ("Pip ali"). Returns the payload
- * after the address word: "Pipali, also check the logs" → "also check the logs".
+ * the first token (after optional lead-ins like "hey"), by spelling or by
+ * sound — STT mangles the proper noun ("Bipali", "peopley") and may split it
+ * ("Pip ali"). Returns the payload after the address word: "Pipali, also check
+ * the logs" → "also check the logs".
  */
 export function parseAddressing(text: string): { addressed: boolean; payload: string } {
     const rawTokens = text.trim().split(/\s+/).filter(Boolean);
+    // Filler and bare punctuation normalize to nothing; step over them as well
+    // as the lead-ins, so "Um, Pipali" still reaches the name.
+    const skippable = (raw: string) => { const t = normalizeUtterance(raw); return !t || isLeadIn(t); };
     let i = 0;
-    while (i < rawTokens.length && LEAD_INS.has(normalizeUtterance(rawTokens[i]!))) i++;
+    while (i < rawTokens.length && skippable(rawTokens[i]!)) i++;
 
-    const first = normalizeUtterance(rawTokens[i] ?? '');
+    const first = addressCandidate(rawTokens[i]);
     if (!first) return { addressed: false, payload: '' };
 
     let consumed = 0;
-    if (first.length >= 4 && editDistance(first, ADDRESS_NAME) <= 2) {
+    if (first.length >= 4 && (editDistance(first, ADDRESS_NAME) <= 2 || soundsLikeAddress(first))) {
         consumed = 1;
     } else if (i + 1 < rawTokens.length) {
-        // STT sometimes splits the name: "Pip ali, do X".
-        const merged = first + normalizeUtterance(rawTokens[i + 1]!);
+        // STT sometimes splits the name: "Pip ali, do X". Matched by spelling
+        // only — by sound, the next word could supply the closing /i/, and
+        // "People I know…" would address Pipali.
+        const merged = first + addressCandidate(rawTokens[i + 1]);
         if (merged.length >= 4 && editDistance(merged, ADDRESS_NAME) <= 1) consumed = 2;
     }
     if (consumed === 0) return { addressed: false, payload: '' };
