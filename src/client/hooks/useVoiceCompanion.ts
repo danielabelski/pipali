@@ -86,6 +86,19 @@ interface ActiveTurn {
     finishing: boolean;
 }
 
+/**
+ * Is this turn still waiting on the reply invitation Pipali opened for it?
+ *
+ * The invitation belongs to a reply turn that has caught nothing. Text of any
+ * kind, or a segment still transcribing, means the user took the floor and the
+ * turn now ends on its own terms — a tail phrase, a short circuit, or a tap.
+ * Composed turns never carry one: addressing Pipali is a statement of intent to
+ * dictate, and dictation is allowed to pause for as long as it likes.
+ */
+function replyInvitationOpen(turn: ActiveTurn): boolean {
+    return turn.kind === 'reply' && !turn.finishing && turn.inFlight === 0 && !turn.transcript.text;
+}
+
 export interface UseVoiceCompanionParams {
     mode: VoiceMode;
     voice?: VoiceGender;
@@ -180,6 +193,7 @@ export function useVoiceCompanion(params: UseVoiceCompanionParams) {
     const handleSegmentRef = useRef<(segment: CapturedSegment) => void>(() => {});
     const goDormantRef = useRef<() => void>(() => {});
     const settleRef = useRef<() => void>(() => {});
+    const armReplyLapseRef = useRef<(turn: ActiveTurn) => void>(() => {});
 
     const beginSpeaking = useCallback((text: string) => {
         speakingRef.current++;
@@ -292,8 +306,11 @@ export function useVoiceCompanion(params: UseVoiceCompanionParams) {
             },
             onSpeechRejected: () => {
                 // A blip that never became a segment: nothing will arrive to
-                // decide the duck, so undo it here.
+                // decide the duck or to restart the reply window, so both are
+                // undone here.
                 if (speakingRef.current > 0) duckSpeech(false);
+                const turn = turnRef.current;
+                if (turn) armReplyLapseRef.current(turn);
             },
         });
         try {
@@ -351,20 +368,29 @@ export function useVoiceCompanion(params: UseVoiceCompanionParams) {
         settleRef.current();
     }, [releaseTurn, dropPrefetch]);
 
+    /**
+     * Start (or restart) the window a reply turn lapses at the end of. Onset
+     * stops it, because speech is about to decide the turn; whatever the speech
+     * came to nothing starts it again, so the window measures silence rather
+     * than the time since the readout.
+     */
+    const armReplyLapse = useCallback((turn: ActiveTurn) => {
+        clearInviteTimer();
+        if (turnRef.current !== turn || !replyInvitationOpen(turn)) return;
+        inviteTimerRef.current = setTimeout(() => {
+            if (turnRef.current === turn && replyInvitationOpen(turn)) lapseReply(turn);
+        }, VOICE_TUNABLES.replyInvitationMs);
+    }, [clearInviteTimer, lapseReply]);
+    useEffect(() => { armReplyLapseRef.current = armReplyLapse; }, [armReplyLapse]);
+
     const openReplyTurn = useCallback(() => {
         const turn: ActiveTurn = { kind: 'reply', transcript: new TurnTranscript(), baseSeq: null, inFlight: 0, finishing: false };
         turnRef.current = turn;
         setLiveTranscript('');
         setStatus('listening');
         playVoiceCue('listening');
-        clearInviteTimer();
-        inviteTimerRef.current = setTimeout(() => {
-            const current = turnRef.current;
-            if (current === turn && !current.finishing && current.inFlight === 0 && !current.transcript.text) {
-                lapseReply(turn);
-            }
-        }, VOICE_TUNABLES.replyInvitationMs);
-    }, [clearInviteTimer, lapseReply]);
+        armReplyLapse(turn);
+    }, [armReplyLapse]);
 
     const openComposedTurn = useCallback(() => {
         const turn: ActiveTurn = { kind: 'composed', transcript: new TurnTranscript(), baseSeq: null, inFlight: 0, finishing: false };
@@ -734,7 +760,12 @@ export function useVoiceCompanion(params: UseVoiceCompanionParams) {
             if (text.trim()) playTranscriptTicks(text.trim().split(/\s+/).length);
             maybeShortCircuit(turn);
         }
-    }, [completeTurn, cancelTurn, maybeShortCircuit]);
+        // The segment that stopped the reply window may have held nothing —
+        // echo, a hallucination, a cough someone else made. Restart it if so;
+        // armReplyLapse decides, and every other outcome above has left the
+        // turn holding text or released it outright.
+        armReplyLapse(turn);
+    }, [completeTurn, cancelTurn, maybeShortCircuit, armReplyLapse]);
 
     /** Open a turn already carrying its first utterance (addressed speech, barge-in). */
     const beginTurn = useCallback((kind: TurnKind, text: string, seq: number) => {
@@ -945,3 +976,8 @@ export function useVoiceCompanion(params: UseVoiceCompanionParams) {
 
     return { status, supported, liveTranscript, handleTap, onConfirmationRequest, onConfirmationResponded, onTaskComplete, onStepStart };
 }
+
+// Exposed for unit tests (the reply invitation's rule, without a DOM).
+export const __test__ = {
+    replyInvitationOpen,
+};
