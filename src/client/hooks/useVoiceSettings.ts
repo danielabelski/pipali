@@ -24,7 +24,7 @@ export interface VoiceSettings {
 }
 
 const STORAGE_KEY = 'pipali.voiceSettings.v1';
-const DEFAULTS: VoiceSettings = { enabled: false, mode: 'off', lastActiveMode: 'ask_first', gender: 'male' };
+const DEFAULTS: VoiceSettings = { enabled: true, mode: 'off', lastActiveMode: 'ask_first', gender: 'male' };
 
 type PersistedV1 = { v: 1 } & VoiceSettings;
 

@@ -2,6 +2,11 @@ import { test, expect, describe } from 'bun:test';
 import { parseVoiceSettings } from '../../src/client/hooks/useVoiceSettings';
 
 describe('parseVoiceSettings', () => {
+    test('fresh install has voice on but the mic off', () => {
+        expect(parseVoiceSettings(null))
+            .toEqual({ enabled: true, mode: 'off', lastActiveMode: 'ask_first', gender: 'male' });
+    });
+
     test('feature flag off forces mode off, so re-enabling never surprise-starts the mic', () => {
         expect(parseVoiceSettings('{"v":1,"enabled":false,"mode":"speak_freely","lastActiveMode":"speak_freely"}'))
             .toEqual({ enabled: false, mode: 'off', lastActiveMode: 'speak_freely', gender: 'male' });
@@ -19,7 +24,7 @@ describe('parseVoiceSettings', () => {
             .toEqual({ enabled: true, mode: 'off', lastActiveMode: 'ask_first', gender: 'male' });
         expect(parseVoiceSettings('{"v":1,"enabled":true,"gender":"robot"}').gender).toBe('male');
         expect(parseVoiceSettings('not json'))
-            .toEqual({ enabled: false, mode: 'off', lastActiveMode: 'ask_first', gender: 'male' });
+            .toEqual({ enabled: true, mode: 'off', lastActiveMode: 'ask_first', gender: 'male' });
     });
 
     test('chosen voice survives a reload', () => {

@@ -65,7 +65,7 @@ export function SettingsPage({ onUserContextSaved }: SettingsPageProps) {
     const [isLoading, setIsLoading] = useState(true);
     const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
     const [error, setError] = useState<string | null>(null);
-    // Voice feature flag (beta, per-device). Session mode lives in the chat-input menu.
+    // Voice feature flag (per-device). Session mode lives in the chat-input menu.
     const { enabled: voiceFeatureEnabled, setEnabled: setVoiceEnabled, gender: voiceGender, setGender: setVoiceGender } = useVoiceSettings();
 
     // Sandbox state
@@ -374,14 +374,13 @@ export function SettingsPage({ onUserContextSaved }: SettingsPageProps) {
 
                         <NotificationsSection />
 
-                        {/* Voice mode (beta) — gates all voice UI and the mic session */}
+                        {/* Voice mode — gates all voice UI and the mic session */}
                         <div className="settings-section">
                             <div className="settings-section-header">
                                 <div>
                                     <h3 className="settings-section-title">
                                         <Headphones size={18} />
                                         {t('voice.title')}
-                                        <span className="settings-beta-badge">{t('voice.beta')}</span>
                                     </h3>
                                     <p className="settings-section-description">
                                         {t('voice.description')}
@@ -397,7 +396,7 @@ export function SettingsPage({ onUserContextSaved }: SettingsPageProps) {
                                     <span className="toggle-slider"></span>
                                 </label>
                             </div>
-                            <p className="settings-field-hint">{t('voice.betaHint')}</p>
+                            <p className="settings-field-hint">{t('voice.controlsHint')}</p>
                             <p className="settings-field-hint">{t('voice.enabledHint')}</p>
                             {voiceFeatureEnabled && (
                                 <div className="settings-field settings-field-inline">

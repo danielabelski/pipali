@@ -96,8 +96,7 @@
         "streamedArgs": "{{chars}} chars"
     },
     "voice": {
-        "beta": "Beta",
-        "betaHint": "Turning this on adds the voice controls next to the message box.",
+        "controlsHint": "Turning this on adds the voice controls next to the message box.",
         "enable": "Enable voice mode",
         "title": "Voice",
         "description": "Use voice to interact with Pipali. Work without being tethered to your desk.",
