@@ -40,6 +40,8 @@ export type AutomationInfo = {
     chatModelId?: number | null;
     lastExecutedAt?: string;
     nextScheduledAt?: string;
+    /** The next few runs as dates, for schedules too detailed to sum up in a phrase. */
+    upcomingRuns?: string[];
     createdAt: string;
     updatedAt: string;
 };

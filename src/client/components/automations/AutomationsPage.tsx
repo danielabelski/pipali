@@ -15,6 +15,7 @@ interface AutomationsPageProps {
     onConfirmationRespond: (confirmationId: string, optionId: string, guidance?: string) => void;
     onConfirmationDismiss: (confirmationId: string) => void;
     onViewConversation: (conversationId: string) => void;
+    onAskPipali: (draft: string) => void;
     onAutomationChanged?: () => void;
 }
 
@@ -23,6 +24,7 @@ export function AutomationsPage({
     onConfirmationRespond,
     onConfirmationDismiss,
     onViewConversation,
+    onAskPipali,
     onAutomationChanged,
 }: AutomationsPageProps) {
     const { t } = useTranslation();
@@ -200,6 +202,10 @@ export function AutomationsPage({
                     onViewConversation={(convId) => {
                         setSelectedAutomation(null);
                         onViewConversation(convId);
+                    }}
+                    onAskPipali={(draft) => {
+                        setSelectedAutomation(null);
+                        onAskPipali(draft);
                     }}
                 />
             )}

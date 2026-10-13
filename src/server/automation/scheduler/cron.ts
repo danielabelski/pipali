@@ -51,10 +51,7 @@ export function scheduleCronJob(automation: typeof Automation.$inferSelect): voi
     try {
         // Create new cron job
         // Use system timezone by default (undefined lets croner use local time)
-        const job: Cron = new Cron(config.schedule, {
-            timezone: config.timezone,
-            startAt: config.startDate ? lastSecondBefore(config.startDate) : undefined,
-        }, async () => {
+        const job: Cron = new Cron(config.schedule, cronOptions(config), async () => {
             recordNextRun(automation.id, job);
 
             const triggerData: TriggerEventData = {
@@ -72,6 +69,25 @@ export function scheduleCronJob(automation: typeof Automation.$inferSelect): voi
         log.info(`Scheduled cron job for ${automation.name} (${config.schedule})`);
     } catch (error) {
         log.error({ err: error, name: automation.name }, 'Failed to schedule cron job');
+    }
+}
+
+function cronOptions(config: CronTriggerConfig) {
+    return {
+        timezone: config.timezone,
+        startAt: config.startDate ? lastSecondBefore(config.startDate) : undefined,
+    };
+}
+
+/**
+ * The next runs of a schedule, as its job would fire them. Lets the routines page show
+ * any schedule as dates, whatever cron it is written in.
+ */
+export function upcomingRuns(config: CronTriggerConfig, count: number): Date[] {
+    try {
+        return new Cron(config.schedule, cronOptions(config)).nextRuns(count);
+    } catch {
+        return [];
     }
 }
 

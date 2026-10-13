@@ -357,7 +357,8 @@
 
 .frequency-selector,
 .time-selector,
-.start-date-selector {
+.start-date-selector,
+.custom-schedule {
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -437,6 +438,22 @@
 .start-date-clear:hover {
     color: var(--color-text);
     background: var(--color-bg-muted);
+}
+
+.custom-schedule-description {
+    font-size: 14px;
+    color: var(--color-text);
+}
+
+.custom-schedule-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.custom-schedule-actions .btn-secondary {
+    padding: 6px 12px;
+    font-size: 13px;
 }
 
 .frequency-detail {

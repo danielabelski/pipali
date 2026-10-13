@@ -4,7 +4,7 @@
  */
 
 import { test, expect, describe, beforeEach, afterEach } from 'bun:test';
-import { scheduleCronJob, stopCronJob } from '../../src/server/automation/scheduler/cron';
+import { scheduleCronJob, stopCronJob, upcomingRuns } from '../../src/server/automation/scheduler/cron';
 import type { CronTriggerConfig } from '../../src/server/automation/types';
 import type { Automation } from '../../src/server/db/schema';
 
@@ -64,6 +64,13 @@ describe('routine next run', () => {
         const msUntilNextRun = recordedNextRuns[0]!.getTime() - Date.now();
         expect(msUntilNextRun).toBeGreaterThan(0);
         expect(msUntilNextRun).toBeLessThanOrEqual(24 * 60 * 60 * 1000);
+    });
+
+    test('upcoming runs, as the routines page lists them, follow the start date and timezone', () => {
+        const runs = upcomingRuns({ type: 'cron', schedule: '0 0 * * *', timezone: 'Asia/Tokyo', startDate: '2099-03-14' }, 2);
+
+        expect(runs.map(run => run.toISOString())).toEqual(['2099-03-13T15:00:00.000Z', '2099-03-14T15:00:00.000Z']);
+        expect(upcomingRuns({ type: 'cron', schedule: 'not a schedule' }, 3)).toEqual([]);
     });
 
     test('moves on to the following run once the routine runs', async () => {

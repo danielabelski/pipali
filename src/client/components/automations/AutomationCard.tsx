@@ -3,8 +3,7 @@
 import { useTranslation } from 'react-i18next';
 import { ChevronRight, Clock, Calendar, AlertCircle } from 'lucide-react';
 import type { AutomationInfo, AutomationPendingConfirmation } from '../../types/automations';
-import { formatTime, formatDayOfWeek, formatDayOfMonth, formatNextRun } from './utils';
-import type { TFunction } from 'i18next';
+import { formatNextRun, formatSchedule } from './utils';
 
 interface AutomationCardProps {
     automation: AutomationInfo;
@@ -12,46 +11,6 @@ interface AutomationCardProps {
     onClick?: () => void;
     onToggleStatus?: (status: 'active' | 'paused') => void;
     isToggling?: boolean;
-}
-
-// Parse cron schedule to human-readable format
-function formatSchedule(automation: AutomationInfo, t: TFunction): string {
-    if (!automation.triggerType || !automation.triggerConfig) {
-        return t('automations.manualOnly');
-    }
-
-    if (automation.triggerType !== 'cron') {
-        return t('automations.fileWatchTrigger');
-    }
-
-    const config = automation.triggerConfig;
-    if (config.type !== 'cron') return t('automations.unknownSchedule');
-
-    const parts = config.schedule.split(' ');
-    if (parts.length !== 5) return config.schedule;
-
-    const minute = parts[0] ?? '0';
-    const hour = parts[1] ?? '0';
-    const dayOfMonth = parts[2] ?? '*';
-    const dayOfWeek = parts[4] ?? '*';
-
-    const hourNum = parseInt(hour, 10);
-    const timeStr = formatTime(hourNum, minute, t);
-
-    if (hour === '*') {
-        return t('automations.hourlyAt', { minute: minute.padStart(2, '0') });
-    }
-    if (dayOfMonth === '*' && dayOfWeek === '*') {
-        return t('automations.dailyAt', { time: timeStr });
-    }
-    if (dayOfMonth === '*' && dayOfWeek !== '*') {
-        return t('automations.weeklyOn', { day: formatDayOfWeek(dayOfWeek, t), time: timeStr });
-    }
-    if (dayOfMonth !== '*') {
-        return t('automations.monthlyOn', { day: formatDayOfMonth(parseInt(dayOfMonth, 10)), time: timeStr });
-    }
-
-    return config.schedule;
 }
 
 export function AutomationCard({
@@ -66,7 +25,7 @@ export function AutomationCard({
     const isPaused = automation.status === 'paused';
     const hasConfirmation = !!pendingConfirmation;
     const hasSchedule = automation.triggerType && automation.triggerConfig;
-    const schedule = formatSchedule(automation, t);
+    const schedule = formatSchedule(automation, t, 'short');
     const nextRun = hasSchedule ? formatNextRun(automation.nextScheduledAt, t) : null;
 
     // Determine card classes

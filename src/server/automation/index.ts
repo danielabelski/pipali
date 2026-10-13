@@ -35,6 +35,7 @@ export {
     isFileWatcherActive,
     getActiveCronJobCount,
     getActiveFileWatcherCount,
+    upcomingRuns,
 } from './scheduler';
 
 /**

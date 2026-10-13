@@ -13,6 +13,7 @@ export {
     isCronJobActive,
     getActiveCronJobCount,
     reloadCronJob,
+    upcomingRuns,
 } from './cron';
 
 export {

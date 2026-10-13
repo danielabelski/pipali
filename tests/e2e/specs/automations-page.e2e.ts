@@ -365,6 +365,98 @@ test.describe('Automations Page', () => {
             expect(automation.triggerConfig).toEqual({ type: 'cron', schedule: '0 10 * * *', timezone: 'Asia/Tokyo' });
         });
 
+        test('a weekday routine reads as weekdays and keeps its days through edits', async ({ page }) => {
+            const automationId = await automationsPage.createAutomationViaAPI({
+                name: 'Weekday Schedule Test',
+                prompt: 'Test prompt for a weekday schedule',
+                schedule: '0 9 * * 1-5',
+            });
+            testAutomationIds.push(automationId);
+            const schedule = async () => (await (await page.request.get(`/api/automations/${automationId}`)).json()).automation.triggerConfig.schedule;
+
+            await automationsPage.goto();
+            const card = automationsPage.getAutomationCardByName('Weekday Schedule Test');
+            await expect(card.locator(Selectors.automationSchedule)).toHaveText('Weekdays at 9:00 AM');
+
+            await automationsPage.openAutomationDetail('Weekday Schedule Test');
+            await automationsPage.clickEditButton();
+            await expect(automationsPage.detailModal.locator(`${Selectors.dayToggle}.active`)).toHaveCount(5);
+            await automationsPage.editInstructions('Edited prompt for a weekday schedule');
+            await automationsPage.saveAutomation();
+            expect(await schedule()).toBe('0 9 * * 1-5');
+
+            await automationsPage.openAutomationDetail('Weekday Schedule Test');
+            await automationsPage.clickEditButton();
+            await automationsPage.selectTime('10:00 AM');
+            await automationsPage.saveAutomation();
+            expect(await schedule()).toBe('0 10 * * 1,2,3,4,5');
+            await automationsPage.reloadAutomations();
+            await expect(card.locator(Selectors.automationSchedule)).toHaveText('Weekdays at 10:00 AM');
+        });
+
+        test('a schedule beyond the form reads in plain words and survives an edit', async ({ page }) => {
+            const automationId = await automationsPage.createAutomationViaAPI({
+                name: 'Twice Daily Test',
+                prompt: 'Test prompt for a twice daily schedule',
+                schedule: '30 8,16 * * 1-5',
+            });
+            testAutomationIds.push(automationId);
+
+            await automationsPage.goto();
+            const card = automationsPage.getAutomationCardByName('Twice Daily Test');
+            await expect(card.locator(Selectors.automationSchedule)).toHaveText('At 08:30 AM and 04:30 PM, Monday through Friday');
+
+            await automationsPage.openAutomationDetail('Twice Daily Test');
+            await expect(automationsPage.detailNextRun).toContainText('Next runs:');
+            await automationsPage.clickEditButton();
+            await expect(automationsPage.detailModal.locator('.custom-schedule-description')).toHaveText('At 08:30 AM and 04:30 PM, Monday through Friday');
+            await automationsPage.editInstructions('Edited prompt for a twice daily schedule');
+            await automationsPage.saveAutomation();
+
+            const response = await page.request.get(`/api/automations/${automationId}`);
+            const { automation } = await response.json();
+            expect(automation.prompt).toBe('Edited prompt for a twice daily schedule');
+            expect(automation.triggerConfig.schedule).toBe('30 8,16 * * 1-5');
+        });
+
+        test('a schedule beyond the form can be replaced with one set here', async ({ page }) => {
+            const automationId = await automationsPage.createAutomationViaAPI({
+                name: 'Replace Schedule Test',
+                prompt: 'Test prompt for replacing a schedule',
+                schedule: '*/15 * * * *',
+            });
+            testAutomationIds.push(automationId);
+
+            await automationsPage.goto();
+            await automationsPage.openAutomationDetail('Replace Schedule Test');
+            await automationsPage.clickEditButton();
+            await automationsPage.detailModal.locator('.custom-schedule-replace').click();
+            await automationsPage.selectFrequency('Week');
+            await automationsPage.selectDayOfWeek('Friday');
+            await automationsPage.saveAutomation();
+
+            const response = await page.request.get(`/api/automations/${automationId}`);
+            expect((await response.json()).automation.triggerConfig.schedule).toBe('0 12 * * 1,5');
+        });
+
+        test('asking Pipali to change a schedule drafts a new chat about the routine', async ({ page }) => {
+            const automationId = await automationsPage.createAutomationViaAPI({
+                name: 'Ask Pipali Test',
+                prompt: 'Test prompt for asking Pipali',
+                schedule: '0 9 * * 1#1',
+            });
+            testAutomationIds.push(automationId);
+
+            await automationsPage.goto();
+            await automationsPage.openAutomationDetail('Ask Pipali Test');
+            await automationsPage.clickEditButton();
+            await automationsPage.detailModal.locator('.custom-schedule-ask').click();
+
+            await expect(automationsPage.detailModal).toBeHidden();
+            await expect(page.locator(Selectors.inputTextarea)).toHaveValue('Change the schedule of my routine "Ask Pipali Test" to ');
+            await expect(page.locator(Selectors.inputTextarea)).toBeFocused();
+        });
+
         test('should cancel edit mode and discard changes', async () => {
             const originalPrompt = 'Original prompt that should not change';
             const automationId = await automationsPage.createAutomationViaAPI({

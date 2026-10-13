@@ -8,6 +8,7 @@ import { DAYS_OF_WEEK, TIME_OPTIONS, DAY_OF_MONTH_OPTIONS, MINUTE_OPTIONS } from
 import { apiFetch } from '../../utils/api';
 import { useModels } from '../../hooks/useModels';
 import { StartDateField } from './StartDateField';
+import { buildCronSchedule, DEFAULT_FORM_SCHEDULE } from './schedule';
 
 interface CreateAutomationModalProps {
     onClose: () => void;
@@ -38,11 +39,11 @@ export function CreateAutomationModal({ onClose, onCreated }: CreateAutomationMo
 
     // Schedule state (optional)
     const [hasSchedule, setHasSchedule] = useState(false);
-    const [frequency, setFrequency] = useState<FrequencyType>('day');
-    const [daysOfWeek, setDaysOfWeek] = useState<DayOfWeek[]>(['monday']);
-    const [dayOfMonth, setDayOfMonth] = useState(1);
-    const [minuteOfHour, setMinuteOfHour] = useState(0);
-    const [time, setTime] = useState('12:00');
+    const [frequency, setFrequency] = useState<FrequencyType>(DEFAULT_FORM_SCHEDULE.frequency);
+    const [daysOfWeek, setDaysOfWeek] = useState<DayOfWeek[]>(DEFAULT_FORM_SCHEDULE.daysOfWeek);
+    const [dayOfMonth, setDayOfMonth] = useState(DEFAULT_FORM_SCHEDULE.dayOfMonth);
+    const [minuteOfHour, setMinuteOfHour] = useState(DEFAULT_FORM_SCHEDULE.minuteOfHour);
+    const [time, setTime] = useState(DEFAULT_FORM_SCHEDULE.time);
     const [startDate, setStartDate] = useState('');
 
     // Form state
@@ -57,32 +58,6 @@ export function CreateAutomationModal({ onClose, onCreated }: CreateAutomationMo
         : t('automations.defaultModelUnknown');
 
     const canSubmit = instructions.trim().length > 0 && !isCreating;
-
-    // Convert UI state to cron schedule
-    const buildCronSchedule = (): string => {
-        const [hour, timeMinute] = time.split(':').map(Number);
-
-        switch (frequency) {
-            case 'hour':
-                // Every hour at the specified minute
-                return `${minuteOfHour} * * * *`;
-            case 'day':
-                // Every day at the specified time
-                return `${timeMinute} ${hour} * * *`;
-            case 'week':
-                // Every week on the specified day(s)
-                const weekdayIndices = daysOfWeek
-                    .map(d => DAYS_OF_WEEK.findIndex(day => day.value === d))
-                    .sort((a, b) => a - b)
-                    .join(',');
-                return `${timeMinute} ${hour} * * ${weekdayIndices}`;
-            case 'month':
-                // Every month on the specified day
-                return `${timeMinute} ${hour} ${dayOfMonth} * *`;
-            default:
-                return `${timeMinute} ${hour} * * *`;
-        }
-    };
 
     const generateName = (): string => {
         return instructions.trim().slice(0, 100);
@@ -107,7 +82,7 @@ export function CreateAutomationModal({ onClose, onCreated }: CreateAutomationMo
 
             // Only include trigger config if schedule is enabled
             if (hasSchedule) {
-                const schedule = buildCronSchedule();
+                const schedule = buildCronSchedule({ frequency, daysOfWeek, dayOfMonth, minuteOfHour, time });
                 body.triggerType = 'cron';
                 body.triggerConfig = {
                     type: 'cron',

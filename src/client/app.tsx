@@ -1461,6 +1461,13 @@ const App = () => {
         syncSelectedModelForConversation(undefined);
     };
 
+    // A new chat with a message drafted for the user to finish and send
+    const draftNewConversation = (draft: string) => {
+        startNewConversation();
+        setInput(draft);
+        scheduleTextareaFocus();
+    };
+
     const renameConversation = async (id: string, title: string): Promise<boolean> => {
         try {
             const res = await apiFetch(`/api/conversations/${id}/title`, {
@@ -2003,6 +2010,7 @@ const App = () => {
                             onConfirmationRespond={respondToAutomationConfirmation}
                             onConfirmationDismiss={dismissAutomationConfirmation}
                             onViewConversation={selectConversation}
+                            onAskPipali={draftNewConversation}
                             onAutomationChanged={fetchConversations}
                         />
                     )}

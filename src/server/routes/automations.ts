@@ -18,6 +18,8 @@ import {
     activateAutomation,
     deactivateAutomation,
     reloadAutomation,
+    upcomingRuns,
+    type CronTriggerConfig,
     type TriggerConfig,
     type TriggerEventData,
 } from '../automation';
@@ -162,6 +164,9 @@ automations.get('/', async (c) => {
         chatModelId: automation.chatModelId,
         lastExecutedAt: automation.lastExecutedAt?.toISOString(),
         nextScheduledAt: automation.nextScheduledAt?.toISOString(),
+        upcomingRuns: automation.triggerType === 'cron' && automation.triggerConfig
+            ? upcomingRuns(automation.triggerConfig as CronTriggerConfig, 3).map(run => run.toISOString())
+            : [],
         createdAt: automation.createdAt.toISOString(),
         updatedAt: automation.updatedAt.toISOString(),
     }));

@@ -51,6 +51,8 @@ started them. Read one with `inspect_task`, or pull just the parts you need from
 - `triggerConfig`: must match `triggerType`. Omit or set `null` for manual-only routines
 - `triggerConfig.startDate`: optional `"YYYY-MM-DD"`. The schedule fires only from that date on, read in `timezone` (else system local time). Omit to start right away
 - PUT replaces `triggerConfig` whole, so send every field it should keep
+- A schedule with both day of month and day of week set fires when either matches: `0 10 1-7 * 1` runs on the 1st to 7th and every Monday. The first Monday of each month is `0 10 * * 1#1`
+- GET `/automations` lists each routine's `upcomingRuns`, the next three times its schedule fires
 
 ## MCP Servers (Tool Integrations)
 | Method | Endpoint | Description |

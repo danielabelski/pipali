@@ -9,9 +9,9 @@ import { shortenHomePath } from '../../utils/formatting';
 import { apiFetch } from '../../utils/api';
 import { useTranslation } from 'react-i18next';
 import { useModels } from '../../hooks/useModels';
-import type { TFunction } from 'i18next';
-import { formatTime, formatDayOfWeek, formatDayOfMonth, formatDate, upcomingStartDate } from './utils';
+import { formatDate, formatRunTimes, formatSchedule, upcomingStartDate } from './utils';
 import { StartDateField } from './StartDateField';
+import { buildCronSchedule, parseFormSchedule, DEFAULT_FORM_SCHEDULE } from './schedule';
 
 interface AutomationDetailModalProps {
     automation: AutomationInfo;
@@ -21,124 +21,9 @@ interface AutomationDetailModalProps {
     onDeleted: () => void;
     onConfirmationRespond?: (confirmationId: string, optionId: string, guidance?: string) => void;
     onViewConversation?: (conversationId: string) => void;
+    onAskPipali?: (draft: string) => void;
 }
 
-
-// Parse cron schedule to UI state
-function parseCronSchedule(schedule: string): {
-    frequency: FrequencyType;
-    daysOfWeek: DayOfWeek[];
-    dayOfMonth: number;
-    minuteOfHour: number;
-    time: string;
-} {
-    const parts = schedule.split(' ');
-    const minute = parts[0] ?? '0';
-    const hour = parts[1] ?? '12';
-    const dayOfMonth = parts[2] ?? '*';
-    const dayOfWeek = parts[4] ?? '*';
-
-    const minuteNum = parseInt(minute, 10);
-    const hourNum = parseInt(hour, 10);
-    const timeFormatted = `${hourNum}:${minute.padStart(2, '0')}`;
-
-    let frequency: FrequencyType = 'day';
-    let parsedDaysOfWeek: DayOfWeek[] = ['monday'];
-    let parsedDayOfMonth = 1;
-    let parsedMinuteOfHour = minuteNum;
-
-    // Check for hourly (hour field is *)
-    if (hour === '*') {
-        frequency = 'hour';
-    } else if (dayOfMonth !== '*') {
-        frequency = 'month';
-        parsedDayOfMonth = parseInt(dayOfMonth, 10);
-    } else if (dayOfWeek !== '*') {
-        frequency = 'week';
-        // Parse comma-separated day indices (e.g., "1,3,5")
-        parsedDaysOfWeek = dayOfWeek.split(',').map(d => {
-            const dayIndex = parseInt(d.trim(), 10);
-            return DAYS_OF_WEEK[dayIndex]?.value ?? 'monday';
-        });
-    }
-
-    return {
-        frequency,
-        daysOfWeek: parsedDaysOfWeek,
-        dayOfMonth: parsedDayOfMonth,
-        minuteOfHour: parsedMinuteOfHour,
-        time: timeFormatted,
-    };
-}
-
-// Build cron schedule from UI state
-function buildCronSchedule(
-    frequency: FrequencyType,
-    daysOfWeek: DayOfWeek[],
-    dayOfMonth: number,
-    minuteOfHour: number,
-    time: string
-): string {
-    const [hour, timeMinute] = time.split(':').map(Number);
-
-    switch (frequency) {
-        case 'hour':
-            return `${minuteOfHour} * * * *`;
-        case 'day':
-            return `${timeMinute} ${hour} * * *`;
-        case 'week':
-            const weekdayIndices = daysOfWeek
-                .map(d => DAYS_OF_WEEK.findIndex(day => day.value === d))
-                .sort((a, b) => a - b)
-                .join(',');
-            return `${timeMinute} ${hour} * * ${weekdayIndices}`;
-        case 'month':
-            return `${timeMinute} ${hour} ${dayOfMonth} * *`;
-        default:
-            return `${timeMinute} ${hour} * * *`;
-    }
-}
-
-// Format schedule for display
-function formatSchedule(automation: AutomationInfo, t: TFunction): string {
-    if (!automation.triggerType || !automation.triggerConfig) {
-        return t('automations.manualOnly');
-    }
-
-    if (automation.triggerType !== 'cron') {
-        return t('automations.fileWatchTrigger');
-    }
-
-    const config = automation.triggerConfig;
-    if (config.type !== 'cron') return t('automations.unknownSchedule');
-
-    const parts = config.schedule.split(' ');
-    if (parts.length !== 5) return config.schedule;
-
-    const minute = parts[0] ?? '0';
-    const hour = parts[1] ?? '0';
-    const dayOfMonth = parts[2] ?? '*';
-    const dayOfWeek = parts[4] ?? '*';
-
-    if (hour === '*') {
-        return t('automations.everyHourAt', { minute: minute.padStart(2, '0') });
-    }
-
-    const hourNum = parseInt(hour, 10);
-    const timeStr = formatTime(hourNum, minute, t);
-
-    if (dayOfMonth === '*' && dayOfWeek === '*') {
-        return t('automations.everyDayAt', { time: timeStr });
-    }
-    if (dayOfMonth === '*' && dayOfWeek !== '*') {
-        return t('automations.everyDayOfWeekAt', { day: formatDayOfWeek(dayOfWeek, t), time: timeStr });
-    }
-    if (dayOfMonth !== '*') {
-        return t('automations.everyDayOfMonthAt', { day: formatDayOfMonth(parseInt(dayOfMonth, 10)), time: timeStr });
-    }
-
-    return config.schedule;
-}
 
 export function AutomationDetailModal({
     automation,
@@ -148,6 +33,7 @@ export function AutomationDetailModal({
     onDeleted,
     onConfirmationRespond,
     onViewConversation,
+    onAskPipali,
 }: AutomationDetailModalProps) {
     const { t } = useTranslation();
     const onTheLabel = t('automations.onThe');
@@ -173,15 +59,17 @@ export function AutomationDetailModal({
 
     // Edit form state
     const cronConfig = automation.triggerConfig?.type === 'cron' ? automation.triggerConfig : undefined;
-    const initialParsed = cronConfig
-        ? parseCronSchedule(cronConfig.schedule)
-        : { frequency: 'day' as FrequencyType, daysOfWeek: ['monday'] as DayOfWeek[], dayOfMonth: 1, minuteOfHour: 0, time: '12:00' };
+    const parsedSchedule = cronConfig ? parseFormSchedule(cronConfig.schedule) : null;
+    const initialCustomSchedule = cronConfig && !parsedSchedule ? cronConfig.schedule : null;
+    const initialParsed = parsedSchedule ?? DEFAULT_FORM_SCHEDULE;
 
     const [frequency, setFrequency] = useState<FrequencyType>(initialParsed.frequency);
     const [daysOfWeek, setDaysOfWeek] = useState<DayOfWeek[]>(initialParsed.daysOfWeek);
     const [dayOfMonth, setDayOfMonth] = useState(initialParsed.dayOfMonth);
     const [minuteOfHour, setMinuteOfHour] = useState(initialParsed.minuteOfHour);
     const [time, setTime] = useState(initialParsed.time);
+    // Saved as written unless the user replaces it, since the form cannot show it
+    const [customSchedule, setCustomSchedule] = useState(initialCustomSchedule);
     const upcomingStart = upcomingStartDate(automation);
     const [startDate, setStartDate] = useState(upcomingStart);
     const [name, setName] = useState(automation.name);
@@ -240,7 +128,10 @@ export function AutomationDetailModal({
 
             // Only include trigger config if schedule is enabled
             if (editHasSchedule) {
-                const schedule = buildCronSchedule(frequency, daysOfWeek, dayOfMonth, minuteOfHour, time);
+                const formSchedule = buildCronSchedule({ frequency, daysOfWeek, dayOfMonth, minuteOfHour, time });
+                // Left alone, a schedule saves as written, so "1-5" stays "1-5" rather than "1,2,3,4,5"
+                const keptSchedule = parsedSchedule && formSchedule === buildCronSchedule(parsedSchedule) ? cronConfig?.schedule : undefined;
+                const schedule = customSchedule ?? keptSchedule ?? formSchedule;
                 body.triggerType = 'cron';
                 body.triggerConfig = {
                     type: 'cron',
@@ -459,7 +350,7 @@ export function AutomationDetailModal({
                                 <h3>{t('automations.schedule')}</h3>
                                 <div className="automation-detail-row automation-detail-schedule">
                                     <Calendar size={16} />
-                                    <span>{formatSchedule(automation, t)}</span>
+                                    <span>{formatSchedule(automation, t, 'long')}</span>
                                 </div>
                                 {hasSchedule && upcomingStart && (
                                     <div className="automation-detail-start-date">
@@ -470,7 +361,11 @@ export function AutomationDetailModal({
                                 {hasSchedule && automation.nextScheduledAt && isActive && !pendingConfirmation && (
                                     <div className="automation-detail-next-run">
                                         <Clock size={14} />
-                                        <span>{t('automations.nextRun', { time: new Date(automation.nextScheduledAt).toLocaleString() })}</span>
+                                        <span>
+                                            {initialCustomSchedule && automation.upcomingRuns?.length
+                                                ? t('automations.nextRuns', { runs: formatRunTimes(automation.upcomingRuns).join(' · ') })
+                                                : t('automations.nextRun', { time: new Date(automation.nextScheduledAt).toLocaleString() })}
+                                        </span>
                                     </div>
                                 )}
                             </div>
@@ -540,107 +435,138 @@ export function AutomationDetailModal({
 
                                 {editHasSchedule && (
                                     <div className="schedule-content">
-                                        <div className="frequency-selector">
-                                            <div className="frequency-row">
-                                                <Calendar size={16} className="frequency-icon" />
-                                                <span className="frequency-label">{t('automations.every')}</span>
-                                                <select
-                                                    value={frequency}
-                                                    onChange={(e) => setFrequency(e.target.value as FrequencyType)}
-                                                    className="frequency-select"
-                                                >
-                                                    {FREQUENCY_OPTIONS.map(opt => (
-                                                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                                    ))}
-                                                </select>
-                                            </div>
-
-                                            {/* Day of Week selector for weekly */}
-                                            {frequency === 'week' && (
-                                                <div className="frequency-detail">
-                                                    <p className="frequency-detail-label">{t('automations.weekDayPromptDetail')}</p>
-                                                    <div className="day-toggle-group">
-                                                        {DAYS_OF_WEEK.map(day => (
-                                                            <button
-                                                                key={day.value}
-                                                                type="button"
-                                                                className={`day-toggle${daysOfWeek.includes(day.value) ? ' active' : ''}`}
-                                                                onClick={() => {
-                                                                    setDaysOfWeek(prev => {
-                                                                        if (prev.includes(day.value)) {
-                                                                            if (prev.length === 1) return prev;
-                                                                            return prev.filter(d => d !== day.value);
-                                                                        }
-                                                                        return [...prev, day.value];
-                                                                    });
-                                                                }}
-                                                            >
-                                                                {day.label.slice(0, 3)}
-                                                            </button>
-                                                        ))}
-                                                    </div>
+                                        {customSchedule ? (
+                                            <div className="custom-schedule">
+                                                <p className="frequency-detail-label">{t('automations.customScheduleHint')}</p>
+                                                <div className="frequency-row">
+                                                    <Calendar size={16} className="frequency-icon" />
+                                                    <span className="custom-schedule-description">{formatSchedule(automation, t, 'long')}</span>
                                                 </div>
-                                            )}
-
-                                            {/* Day of Month selector for monthly */}
-                                            {frequency === 'month' && (
-                                                <div className="frequency-detail">
-                                                    <p className="frequency-detail-label">{t('automations.monthDayPromptDetail')}</p>
+                                                <div className="custom-schedule-actions">
+                                                    {onAskPipali && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => onAskPipali(t('automations.askPipaliDraft', { name: automation.name }))}
+                                                            className="btn-secondary custom-schedule-ask"
+                                                        >
+                                                            <MessageSquare size={14} />
+                                                            <span>{t('automations.askPipali')}</span>
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setCustomSchedule(null)}
+                                                        className="btn-secondary custom-schedule-replace"
+                                                    >
+                                                        {t('automations.replaceSchedule')}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <div className="frequency-selector">
                                                     <div className="frequency-row">
                                                         <Calendar size={16} className="frequency-icon" />
-                                                        {onTheLabel ? <span className="frequency-label">{onTheLabel}</span> : null}
+                                                        <span className="frequency-label">{t('automations.every')}</span>
                                                         <select
-                                                            value={dayOfMonth}
-                                                            onChange={(e) => setDayOfMonth(Number(e.target.value))}
+                                                            value={frequency}
+                                                            onChange={(e) => setFrequency(e.target.value as FrequencyType)}
                                                             className="frequency-select"
                                                         >
-                                                            {DAY_OF_MONTH_OPTIONS.map(day => (
-                                                                <option key={day.value} value={day.value}>{day.label}</option>
-                                                            ))}
-                                                        </select>
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {/* Minute selector for hourly */}
-                                            {frequency === 'hour' && (
-                                                <div className="frequency-detail">
-                                                    <p className="frequency-detail-label">{t('automations.minutePromptDetail')}</p>
-                                                    <div className="frequency-row">
-                                                        <Clock size={16} className="frequency-icon" />
-                                                        <span className="frequency-label">{t('automations.atMinute')}</span>
-                                                        <select
-                                                            value={minuteOfHour}
-                                                            onChange={(e) => setMinuteOfHour(Number(e.target.value))}
-                                                            className="frequency-select"
-                                                        >
-                                                            {MINUTE_OPTIONS.map(opt => (
+                                                            {FREQUENCY_OPTIONS.map(opt => (
                                                                 <option key={opt.value} value={opt.value}>{opt.label}</option>
                                                             ))}
                                                         </select>
                                                     </div>
-                                                </div>
-                                            )}
-                                        </div>
 
-                                        {/* Time Section - only show for non-hourly frequencies */}
-                                        {frequency !== 'hour' && (
-                                            <div className="time-selector">
-                                                <p className="frequency-detail-label">{t('automations.timePromptDetail')}</p>
-                                                <div className="frequency-row">
-                                                    <Clock size={16} className="frequency-icon" />
-                                                    {atLabel ? <span className="frequency-label">{atLabel}</span> : null}
-                                                    <select
-                                                        value={time}
-                                                        onChange={(e) => setTime(e.target.value)}
-                                                        className="frequency-select time-select"
-                                                    >
-                                                        {TIME_OPTIONS.map(opt => (
-                                                            <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                                        ))}
-                                                    </select>
+                                                    {/* Day of Week selector for weekly */}
+                                                    {frequency === 'week' && (
+                                                        <div className="frequency-detail">
+                                                            <p className="frequency-detail-label">{t('automations.weekDayPromptDetail')}</p>
+                                                            <div className="day-toggle-group">
+                                                                {DAYS_OF_WEEK.map(day => (
+                                                                    <button
+                                                                        key={day.value}
+                                                                        type="button"
+                                                                        className={`day-toggle${daysOfWeek.includes(day.value) ? ' active' : ''}`}
+                                                                        onClick={() => {
+                                                                            setDaysOfWeek(prev => {
+                                                                                if (prev.includes(day.value)) {
+                                                                                    if (prev.length === 1) return prev;
+                                                                                    return prev.filter(d => d !== day.value);
+                                                                                }
+                                                                                return [...prev, day.value];
+                                                                            });
+                                                                        }}
+                                                                    >
+                                                                        {day.label.slice(0, 3)}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Day of Month selector for monthly */}
+                                                    {frequency === 'month' && (
+                                                        <div className="frequency-detail">
+                                                            <p className="frequency-detail-label">{t('automations.monthDayPromptDetail')}</p>
+                                                            <div className="frequency-row">
+                                                                <Calendar size={16} className="frequency-icon" />
+                                                                {onTheLabel ? <span className="frequency-label">{onTheLabel}</span> : null}
+                                                                <select
+                                                                    value={dayOfMonth}
+                                                                    onChange={(e) => setDayOfMonth(Number(e.target.value))}
+                                                                    className="frequency-select"
+                                                                >
+                                                                    {DAY_OF_MONTH_OPTIONS.map(day => (
+                                                                        <option key={day.value} value={day.value}>{day.label}</option>
+                                                                    ))}
+                                                                </select>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Minute selector for hourly */}
+                                                    {frequency === 'hour' && (
+                                                        <div className="frequency-detail">
+                                                            <p className="frequency-detail-label">{t('automations.minutePromptDetail')}</p>
+                                                            <div className="frequency-row">
+                                                                <Clock size={16} className="frequency-icon" />
+                                                                <span className="frequency-label">{t('automations.atMinute')}</span>
+                                                                <select
+                                                                    value={minuteOfHour}
+                                                                    onChange={(e) => setMinuteOfHour(Number(e.target.value))}
+                                                                    className="frequency-select"
+                                                                >
+                                                                    {MINUTE_OPTIONS.map(opt => (
+                                                                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                                                    ))}
+                                                                </select>
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
-                                            </div>
+
+                                                {/* Time Section - only show for non-hourly frequencies */}
+                                                {frequency !== 'hour' && (
+                                                    <div className="time-selector">
+                                                        <p className="frequency-detail-label">{t('automations.timePromptDetail')}</p>
+                                                        <div className="frequency-row">
+                                                            <Clock size={16} className="frequency-icon" />
+                                                            {atLabel ? <span className="frequency-label">{atLabel}</span> : null}
+                                                            <select
+                                                                value={time}
+                                                                onChange={(e) => setTime(e.target.value)}
+                                                                className="frequency-select time-select"
+                                                            >
+                                                                {TIME_OPTIONS.map(opt => (
+                                                                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </>
                                         )}
 
                                         <StartDateField value={startDate} onChange={setStartDate} />
