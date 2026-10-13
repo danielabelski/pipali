@@ -1,7 +1,7 @@
 // Modal for viewing, editing, and deleting an automation
 
 import React, { useState, useEffect } from 'react';
-import { X, Loader2, Trash2, Calendar, Clock, Pencil, Save, AlertCircle, Send, MessageSquare, Zap, ChevronDown, ChevronRight, Bot } from 'lucide-react';
+import { X, Loader2, Trash2, Calendar, CalendarClock, Clock, Pencil, Save, AlertCircle, Send, MessageSquare, Zap, ChevronDown, ChevronRight, Bot } from 'lucide-react';
 import type { AutomationInfo, FrequencyType, DayOfWeek, AutomationPendingConfirmation } from '../../types/automations';
 import { DAYS_OF_WEEK, TIME_OPTIONS, DAY_OF_MONTH_OPTIONS, MINUTE_OPTIONS } from '../../types/automations';
 import { DiffView } from '../tool-views/DiffView';
@@ -10,7 +10,8 @@ import { apiFetch } from '../../utils/api';
 import { useTranslation } from 'react-i18next';
 import { useModels } from '../../hooks/useModels';
 import type { TFunction } from 'i18next';
-import { formatTime, formatDayOfWeek, formatDayOfMonth } from './utils';
+import { formatTime, formatDayOfWeek, formatDayOfMonth, formatDate, upcomingStartDate } from './utils';
+import { StartDateField } from './StartDateField';
 
 interface AutomationDetailModalProps {
     automation: AutomationInfo;
@@ -180,6 +181,8 @@ export function AutomationDetailModal({
     const [dayOfMonth, setDayOfMonth] = useState(initialParsed.dayOfMonth);
     const [minuteOfHour, setMinuteOfHour] = useState(initialParsed.minuteOfHour);
     const [time, setTime] = useState(initialParsed.time);
+    const upcomingStart = upcomingStartDate(automation);
+    const [startDate, setStartDate] = useState(upcomingStart);
     const [name, setName] = useState(automation.name);
     const [instructions, setInstructions] = useState(automation.prompt);
     const [chatModelId, setChatModelId] = useState<number | null>(automation.chatModelId ?? null);
@@ -241,6 +244,7 @@ export function AutomationDetailModal({
                 body.triggerConfig = {
                     type: 'cron',
                     schedule,
+                    startDate: startDate || undefined,
                 };
             } else {
                 // Explicitly set to null to remove schedule
@@ -454,6 +458,12 @@ export function AutomationDetailModal({
                                     <Calendar size={16} />
                                     <span>{formatSchedule(automation, t)}</span>
                                 </div>
+                                {hasSchedule && upcomingStart && (
+                                    <div className="automation-detail-start-date">
+                                        <CalendarClock size={14} />
+                                        <span>{t('automations.startsOn', { date: formatDate(upcomingStart) })}</span>
+                                    </div>
+                                )}
                                 {hasSchedule && automation.nextScheduledAt && isActive && !pendingConfirmation && (
                                     <div className="automation-detail-next-run">
                                         <Clock size={14} />
@@ -629,6 +639,8 @@ export function AutomationDetailModal({
                                                 </div>
                                             </div>
                                         )}
+
+                                        <StartDateField value={startDate} onChange={setStartDate} />
                                     </div>
                                 )}
                             </div>

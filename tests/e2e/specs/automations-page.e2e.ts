@@ -608,6 +608,73 @@ test.describe('Automations Page', () => {
         });
     });
 
+    test.describe('Routine Start Date', () => {
+        const START_DATE = '2099-03-14';
+
+        type ListedAutomation = {
+            id: string;
+            prompt: string;
+            triggerConfig: { startDate?: string };
+            nextScheduledAt?: string;
+        };
+
+        async function findAutomation(page: import('@playwright/test').Page, prompt: string) {
+            const response = await page.request.get('/api/automations');
+            const { automations } = await response.json() as { automations: ListedAutomation[] };
+            return automations.find(a => a.prompt === prompt);
+        }
+
+        test('a routine set up now first runs on its start date', async ({ page }) => {
+            const prompt = 'Draft the quarterly review';
+            await automationsPage.goto();
+            await automationsPage.createBtn.click();
+
+            const createModal = page.locator(Selectors.createAutomationModal);
+            await createModal.locator('.instructions-textarea').fill(prompt);
+            await createModal.locator('.schedule-toggle').click();
+            await createModal.locator('.start-date-input').fill(START_DATE);
+            await createModal.locator('button[type="submit"]').click();
+            await expect(createModal).toBeHidden({ timeout: 5000 });
+
+            const created = await findAutomation(page, prompt);
+            expect(created).toBeDefined();
+            testAutomationIds.push(created!.id);
+            expect(created!.triggerConfig.startDate).toBe(START_DATE);
+
+            // The create modal defaults to every day at noon.
+            await expect.poll(async () => (await findAutomation(page, prompt))?.nextScheduledAt)
+                .toBe(new Date(`${START_DATE}T12:00`).toISOString());
+
+            await automationsPage.openAutomationDetailByPrompt(prompt);
+            await expect(automationsPage.detailModal.locator('.automation-detail-start-date')).toContainText('2099');
+        });
+
+        test('clearing the start date lets the routine run right away', async ({ page }) => {
+            const prompt = 'Test prompt for clearing start date';
+            const automationId = await automationsPage.createAutomationViaAPI({
+                name: 'Clear Start Date Test',
+                prompt,
+                startDate: START_DATE,
+            });
+            testAutomationIds.push(automationId);
+
+            await automationsPage.goto();
+            await automationsPage.openAutomationDetail('Clear Start Date Test');
+            await automationsPage.clickEditButton();
+            await automationsPage.detailModal.locator('.start-date-clear').click();
+            await automationsPage.saveAutomation();
+
+            expect((await findAutomation(page, prompt))?.triggerConfig.startDate).toBeUndefined();
+            await expect.poll(async () => {
+                const nextRun = (await findAutomation(page, prompt))?.nextScheduledAt;
+                return nextRun ? new Date(nextRun).getTime() - Date.now() : Infinity;
+            }).toBeLessThanOrEqual(24 * 60 * 60 * 1000);
+
+            await automationsPage.openAutomationDetail('Clear Start Date Test');
+            await expect(automationsPage.detailModal.locator('.automation-detail-start-date')).toHaveCount(0);
+        });
+    });
+
     test.describe('Automation Confirmation Notifications', () => {
         /**
          * These tests verify that automations requiring user confirmation display

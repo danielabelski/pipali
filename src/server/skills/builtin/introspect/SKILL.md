@@ -1,6 +1,6 @@
 ---
 name: introspect
-description: Always read this skill before answering questions about your capabilities, UI, settings, state including past chats/routines/skills/tools. Use to help user configure you, onboard, navigate UI and troubleshoot issues.
+description: Always read this skill before answering questions about your capabilities, UI, settings, state including past chats/routines/skills/tools. Use to manage your routines (scheduled tasks), tools, skills and settings, and to help user onboard, navigate UI and troubleshoot issues.
 ---
 
 # Introspect
@@ -65,7 +65,7 @@ The app has a navigation sidebar on the left and a main content area.
 - **Permissions tab**: Enable or disable memories and voice mode, and configure which files/dirs require user confirmation to read/write from your sandboxed shell and other tools
 
 ### Routines Page
-- Create automations with cron schedules (e.g., "every Monday at 9am")
+- Create automations with cron schedules (e.g., "every Monday at 9am"), optionally starting from a later date
 - Each automation has a single conversation with its execution history
 - Can be activated/deactivated, run manually, or deleted
 - Routines is the user facing name of the automations feature in code

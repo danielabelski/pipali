@@ -22,6 +22,8 @@ export interface CronTriggerConfig extends BaseTriggerConfig {
     schedule: string;
     /** Timezone (e.g., "America/New_York"). Defaults to UTC */
     timezone?: string;
+    /** Date (YYYY-MM-DD), in `timezone`, from which the schedule fires. Absent fires right away */
+    startDate?: string;
 }
 
 /**

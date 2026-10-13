@@ -53,6 +53,7 @@ export function scheduleCronJob(automation: typeof Automation.$inferSelect): voi
         // Use system timezone by default (undefined lets croner use local time)
         const job = new Cron(config.schedule, {
             timezone: config.timezone,
+            startAt: config.startDate ? lastSecondBefore(config.startDate) : undefined,
         }, async () => {
             const triggerData: TriggerEventData = {
                 type: 'cron',
@@ -79,6 +80,16 @@ export function scheduleCronJob(automation: typeof Automation.$inferSelect): voi
     } catch (error) {
         log.error({ err: error, name: automation.name }, 'Failed to schedule cron job');
     }
+}
+
+/**
+ * Croner only fires strictly after startAt, which would skip a midnight run on the start
+ * date itself. Returned without an offset, so croner reads it in the job's timezone.
+ */
+function lastSecondBefore(date: string): string {
+    const dayBefore = new Date(`${date}T00:00:00Z`);
+    dayBefore.setUTCSeconds(-1);
+    return dayBefore.toISOString().slice(0, 19);
 }
 
 /**

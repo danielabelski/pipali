@@ -432,6 +432,7 @@ export class AutomationsPage {
         prompt: string;
         description?: string;
         schedule?: string; // cron format
+        startDate?: string; // YYYY-MM-DD
     }): Promise<string> {
         const response = await this.page.request.post('/api/automations', {
             data: {
@@ -442,6 +443,7 @@ export class AutomationsPage {
                 triggerConfig: {
                     type: 'cron',
                     schedule: options.schedule || '0 12 * * *', // Default to daily at noon
+                    startDate: options.startDate,
                 },
             },
         });

@@ -1,5 +1,6 @@
 import type { TFunction } from 'i18next';
 import i18n from '../../i18n';
+import type { AutomationInfo } from '../../types/automations';
 
 /** Format time using locale-appropriate AM/PM or 24-hour format. */
 export function formatTime(h: number, m: string, t: TFunction): string {
@@ -31,6 +32,24 @@ export function formatDayOfMonth(dom: number): string {
         dayStr = `${dom}${suffixes[(v >= 11 && v <= 13) ? 0 : Math.min(v % 10, 4) > 3 ? 0 : v % 10]}`;
     }
     return dayStr;
+}
+
+/** A local calendar date as YYYY-MM-DD, the format of date inputs and routine start dates. */
+export function toDateInputValue(date: Date = new Date()): string {
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+/** A routine's start date if its schedule has yet to begin, else empty. */
+export function upcomingStartDate(automation: AutomationInfo): string {
+    const config = automation.triggerConfig;
+    const startDate = config?.type === 'cron' ? config.startDate : undefined;
+    return startDate && startDate > toDateInputValue() ? startDate : '';
+}
+
+/** Format a YYYY-MM-DD date for display in the UI language. */
+export function formatDate(date: string): string {
+    return new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium' }).format(new Date(`${date}T00:00`));
 }
 
 /** Format next scheduled time as a relative localized string. */

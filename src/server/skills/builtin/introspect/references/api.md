@@ -49,6 +49,8 @@ started them. Read one with `inspect_task`, or pull just the parts you need from
 
 - `triggerType`: `"cron"` or `null` (manual-only)
 - `triggerConfig`: must match `triggerType`. Omit or set `null` for manual-only routines
+- `triggerConfig.startDate`: optional `"YYYY-MM-DD"`. The schedule fires only from that date on, read in `timezone` (else system local time). Omit to start right away
+- PUT replaces `triggerConfig` whole, so send every field it should keep
 
 ## MCP Servers (Tool Integrations)
 | Method | Endpoint | Description |

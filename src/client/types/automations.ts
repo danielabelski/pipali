@@ -8,6 +8,8 @@ export type CronTriggerConfig = {
     type: 'cron';
     schedule: string;
     timezone?: string;
+    /** YYYY-MM-DD the schedule starts firing from. Absent fires right away. */
+    startDate?: string;
 };
 
 export type FileWatchTriggerConfig = {

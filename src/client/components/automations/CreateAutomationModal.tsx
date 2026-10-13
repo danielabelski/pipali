@@ -7,6 +7,7 @@ import type { FrequencyType, DayOfWeek } from '../../types/automations';
 import { DAYS_OF_WEEK, TIME_OPTIONS, DAY_OF_MONTH_OPTIONS, MINUTE_OPTIONS } from '../../types/automations';
 import { apiFetch } from '../../utils/api';
 import { useModels } from '../../hooks/useModels';
+import { StartDateField } from './StartDateField';
 
 interface CreateAutomationModalProps {
     onClose: () => void;
@@ -42,6 +43,7 @@ export function CreateAutomationModal({ onClose, onCreated }: CreateAutomationMo
     const [dayOfMonth, setDayOfMonth] = useState(1);
     const [minuteOfHour, setMinuteOfHour] = useState(0);
     const [time, setTime] = useState('12:00');
+    const [startDate, setStartDate] = useState('');
 
     // Form state
     const [chatModelId, setChatModelId] = useState<number | null>(null);
@@ -110,6 +112,7 @@ export function CreateAutomationModal({ onClose, onCreated }: CreateAutomationMo
                 body.triggerConfig = {
                     type: 'cron',
                     schedule,
+                    startDate: startDate || undefined,
                 };
             }
 
@@ -319,6 +322,8 @@ export function CreateAutomationModal({ onClose, onCreated }: CreateAutomationMo
                                         </div>
                                     </div>
                                 )}
+
+                                <StartDateField value={startDate} onChange={setStartDate} />
                             </div>
                         )}
                     </div>

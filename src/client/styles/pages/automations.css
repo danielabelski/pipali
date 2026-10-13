@@ -356,7 +356,8 @@
 }
 
 .frequency-selector,
-.time-selector {
+.time-selector,
+.start-date-selector {
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -394,6 +395,48 @@
 
 .time-select {
     min-width: 120px;
+}
+
+.start-date-input {
+    padding: 7px 12px;
+    font-size: 14px;
+    font-family: inherit;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    color: var(--color-text);
+    transition: border-color var(--transition);
+}
+
+.start-date-input:focus {
+    outline: none;
+    border-color: var(--color-accent);
+}
+
+/* So the native picker icon and popup follow the app theme */
+@media (prefers-color-scheme: dark) {
+    :root:not(.light) .start-date-input {
+        color-scheme: dark;
+    }
+}
+
+:root.dark .start-date-input {
+    color-scheme: dark;
+}
+
+.start-date-clear {
+    display: inline-flex;
+    padding: 4px;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-sm);
+    color: var(--color-text-muted);
+    cursor: pointer;
+}
+
+.start-date-clear:hover {
+    color: var(--color-text);
+    background: var(--color-bg-muted);
 }
 
 .frequency-detail {
@@ -634,6 +677,7 @@
     color: var(--color-text);
 }
 
+.automation-detail-start-date,
 .automation-detail-next-run {
     display: flex;
     align-items: center;

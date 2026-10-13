@@ -33,6 +33,7 @@ const cronTriggerSchema = z.object({
     type: z.literal('cron'),
     schedule: z.string().min(1),
     timezone: z.string().optional(),
+    startDate: z.iso.date().optional(),
 });
 
 const fileWatchTriggerSchema = z.object({
