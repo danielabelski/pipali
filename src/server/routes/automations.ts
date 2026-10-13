@@ -29,14 +29,16 @@ const automations = new Hono();
 
 // ============== VALIDATION SCHEMAS ==============
 
-const cronTriggerSchema = z.object({
+// Strict, so a misnamed field like `startAt` fails loudly instead of being dropped and
+// leaving the schedule to fire right away.
+const cronTriggerSchema = z.strictObject({
     type: z.literal('cron'),
     schedule: z.string().min(1),
     timezone: z.string().optional(),
     startDate: z.iso.date().optional(),
 });
 
-const fileWatchTriggerSchema = z.object({
+const fileWatchTriggerSchema = z.strictObject({
     type: z.literal('file_watch'),
     paths: z.array(z.string()).min(1),
     events: z.array(z.enum(['create', 'modify', 'delete'])).min(1),
