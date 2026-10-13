@@ -51,10 +51,12 @@ export function scheduleCronJob(automation: typeof Automation.$inferSelect): voi
     try {
         // Create new cron job
         // Use system timezone by default (undefined lets croner use local time)
-        const job = new Cron(config.schedule, {
+        const job: Cron = new Cron(config.schedule, {
             timezone: config.timezone,
             startAt: config.startDate ? lastSecondBefore(config.startDate) : undefined,
         }, async () => {
+            recordNextRun(automation.id, job);
+
             const triggerData: TriggerEventData = {
                 type: 'cron',
                 timestamp: new Date().toISOString(),
@@ -65,21 +67,26 @@ export function scheduleCronJob(automation: typeof Automation.$inferSelect): voi
         });
 
         cronJobs.set(automation.id, job);
-
-        // Update next scheduled time in DB
-        const nextRun = job.nextRun();
-        if (nextRun) {
-            db.update(Automation)
-                .set({ nextScheduledAt: nextRun })
-                .where(eq(Automation.id, automation.id))
-                .execute()
-                .catch(err => log.error({ err }, 'Failed to update next scheduled time'));
-        }
+        recordNextRun(automation.id, job);
 
         log.info(`Scheduled cron job for ${automation.name} (${config.schedule})`);
     } catch (error) {
         log.error({ err: error, name: automation.name }, 'Failed to schedule cron job');
     }
+}
+
+/**
+ * Record when the job fires next, which the routines page counts down to
+ */
+function recordNextRun(automationId: string, job: Cron): void {
+    const nextRun = job.nextRun();
+    if (!nextRun) return;
+
+    db.update(Automation)
+        .set({ nextScheduledAt: nextRun })
+        .where(eq(Automation.id, automationId))
+        .execute()
+        .catch(err => log.error({ err }, 'Failed to update next scheduled time'));
 }
 
 /**
