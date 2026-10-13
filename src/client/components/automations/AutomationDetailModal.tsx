@@ -172,8 +172,9 @@ export function AutomationDetailModal({
     const [guidanceText, setGuidanceText] = useState('');
 
     // Edit form state
-    const initialParsed = automation.triggerConfig?.type === 'cron'
-        ? parseCronSchedule(automation.triggerConfig.schedule)
+    const cronConfig = automation.triggerConfig?.type === 'cron' ? automation.triggerConfig : undefined;
+    const initialParsed = cronConfig
+        ? parseCronSchedule(cronConfig.schedule)
         : { frequency: 'day' as FrequencyType, daysOfWeek: ['monday'] as DayOfWeek[], dayOfMonth: 1, minuteOfHour: 0, time: '12:00' };
 
     const [frequency, setFrequency] = useState<FrequencyType>(initialParsed.frequency);
@@ -244,6 +245,8 @@ export function AutomationDetailModal({
                 body.triggerConfig = {
                     type: 'cron',
                     schedule,
+                    // The form's times are in the routine's timezone, so it carries over
+                    timezone: cronConfig?.timezone,
                     startDate: startDate || undefined,
                 };
             } else {

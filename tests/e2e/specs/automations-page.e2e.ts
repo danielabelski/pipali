@@ -345,6 +345,26 @@ test.describe('Automations Page', () => {
             expect(scheduleText?.toLowerCase()).toContain('friday');
         });
 
+        test('editing the schedule keeps the routine timezone', async ({ page }) => {
+            const automationId = await automationsPage.createAutomationViaAPI({
+                name: 'Timezone Edit Test',
+                prompt: 'Test prompt for timezone edit',
+                schedule: '0 9 * * *',
+                timezone: 'Asia/Tokyo',
+            });
+            testAutomationIds.push(automationId);
+
+            await automationsPage.goto();
+            await automationsPage.openAutomationDetail('Timezone Edit Test');
+            await automationsPage.clickEditButton();
+            await automationsPage.selectTime('10:00 AM');
+            await automationsPage.saveAutomation();
+
+            const response = await page.request.get(`/api/automations/${automationId}`);
+            const { automation } = await response.json();
+            expect(automation.triggerConfig).toEqual({ type: 'cron', schedule: '0 10 * * *', timezone: 'Asia/Tokyo' });
+        });
+
         test('should cancel edit mode and discard changes', async () => {
             const originalPrompt = 'Original prompt that should not change';
             const automationId = await automationsPage.createAutomationViaAPI({
