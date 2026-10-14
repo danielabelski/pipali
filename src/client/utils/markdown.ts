@@ -51,11 +51,14 @@ export function makeMarkdownUrlTransform(options: MarkdownUrlTransformOptions = 
                 case 'mailto:':
                 case 'tel:':
                 case 'file:':
+                // Our own scheme, for links between conversations. ExternalLink
+                // routes these in the app instead of navigating the webview.
+                case 'pipali:':
                     return inputUrl;
                 default:
-                return '';
-        }
-    } catch {
+                    return '';
+            }
+        } catch {
             return '';
         }
     };

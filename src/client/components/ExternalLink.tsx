@@ -11,6 +11,7 @@ import { openInBrowser, openFile, isTauri } from '../utils/tauri';
 import { useFileViewer } from '../hooks/useFileViewer';
 import { fileViewKind } from '../utils/file-viewer';
 import { fileUrlToPath } from '../utils/formatting';
+import { isDeepLink, dispatchInAppDeepLink } from '../utils/deep-link';
 
 type ExternalLinkProps = AnchorHTMLAttributes<HTMLAnchorElement> & {
     node?: unknown;
@@ -48,6 +49,15 @@ export function ExternalLink({ href, children, node: _node, ...props }: External
 
             if (viewable) openInViewer!(filePath!);
             else void openFile(href);
+            return;
+        }
+
+        // Handle Pipali deep links (pipali://) - route within the app. Letting
+        // the webview navigate to our own scheme leaves the page blank.
+        if (isDeepLink(href)) {
+            e.preventDefault();
+            e.stopPropagation();
+            dispatchInAppDeepLink(href);
             return;
         }
 

@@ -37,6 +37,7 @@ import { useVoiceSettings } from "./hooks/useVoiceSettings";
 import { useVoiceCompanion } from "./hooks/useVoiceCompanion";
 import type { VoiceMode } from "./utils/voice/voice-config";
 import { isTauri, onWindowShown, onSidecarReady, listenForDeepLinks } from "./utils/tauri";
+import { parseDeepLink, onInAppDeepLink, conversationDeepLink } from "./utils/deep-link";
 
 // Components
 import { Header, Sidebar, InputArea, PullToRefresh } from "./components/layout";
@@ -530,35 +531,37 @@ const App = () => {
 
     // Helper function to parse deep link URL and route the app
     const handleDeepLink = useCallback((url: string) => {
-        // pipali://tools - return to the MCP tools page (e.g. after completing
-        // an MCP server's OAuth flow in the browser)
-        if (/^pipali:\/\/tools\/?$/.test(url)) {
+        const target = parseDeepLink(url);
+        if (!target) return;
+
+        // Return to the MCP tools page (e.g. after completing an MCP server's
+        // OAuth flow in the browser)
+        if (target.kind === 'tools') {
             setCurrentPage('mcp-tools');
             window.history.pushState({}, '', '/tools');
             window.dispatchEvent(new CustomEvent('pipali:tools-return'));
             return;
         }
-        // pipali://chat/{conversationId}
-        const match = url.match(/^pipali:\/\/chat\/([a-zA-Z0-9-]+)/);
-        if (match) {
-            const convId = match[1];
-            setCurrentPage('chat');
-            setChatConversationId(convId);
-            conversationIdRef.current = convId;
-            scheduleTextareaFocus();
-        }
+
+        setCurrentPage('chat');
+        setChatConversationId(target.conversationId);
+        conversationIdRef.current = target.conversationId;
+        scheduleTextareaFocus();
     }, [scheduleTextareaFocus]);
 
-    // Listen for deep link events from Tauri (external pipali:// URLs)
+    // Deep links arrive from Tauri when opened outside the app, and as a window
+    // event when clicked inside a conversation
     useEffect(() => {
         let unlisten: (() => void) | undefined;
 
         listenForDeepLinks(handleDeepLink).then((unlistenFn) => {
             unlisten = unlistenFn;
         });
+        const unlistenInApp = onInAppDeepLink(handleDeepLink);
 
         return () => {
             unlisten?.();
+            unlistenInApp();
         };
     }, [handleDeepLink]);
 
@@ -1161,7 +1164,7 @@ const App = () => {
     };
 
     const copyConversationLink = (id: string) => {
-        navigator.clipboard.writeText(`pipali://chat/${id}`);
+        navigator.clipboard.writeText(conversationDeepLink(id));
     };
 
     const copyConversationChat = (id: string) => {

@@ -1,5 +1,5 @@
 import { test, expect, describe } from 'bun:test';
-import { normalizeLatexDelimiters } from '../../src/client/utils/markdown';
+import { normalizeLatexDelimiters, safeMarkdownUrlTransform } from '../../src/client/utils/markdown';
 
 describe('normalizeLatexDelimiters', () => {
     describe('backslash delimiters', () => {
@@ -91,5 +91,23 @@ describe('normalizeLatexDelimiters', () => {
             const streaming = 'so far:\n```py\nprint($x$)';
             expect(normalizeLatexDelimiters(streaming)).toBe(streaming);
         });
+    });
+});
+
+describe('safeMarkdownUrlTransform', () => {
+    test('keeps pipali:// deep links, so they stay clickable in a conversation', () => {
+        const link = 'pipali://chat/9093ca2b-7f9d-43e0-998f-49dfbd7b6038';
+        expect(safeMarkdownUrlTransform(link)).toBe(link);
+    });
+
+    test('keeps the protocols the app opens itself', () => {
+        expect(safeMarkdownUrlTransform('https://pipali.ai')).toBe('https://pipali.ai');
+        expect(safeMarkdownUrlTransform('file:///tmp/notes.md')).toBe('file:///tmp/notes.md');
+    });
+
+    test('drops scripting protocols', () => {
+        expect(safeMarkdownUrlTransform('javascript:alert(1)')).toBe('');
+        expect(safeMarkdownUrlTransform('data:text/html,<script>alert(1)</script>')).toBe('');
+        expect(safeMarkdownUrlTransform('vbscript:msgbox(1)')).toBe('');
     });
 });
