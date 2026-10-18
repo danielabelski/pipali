@@ -1,7 +1,7 @@
 import path from 'path';
 import os from 'os';
 
-const maxIterations = parseInt(process.env.PIPALI_RESEARCH_ITERATIONS || '100', 10);
+const maxIterations = parseInt(process.env.PIPALI_RESEARCH_ITERATIONS || '1000', 10);
 
 function getDefaultUser() {
     return {

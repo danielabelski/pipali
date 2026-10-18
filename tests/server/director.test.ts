@@ -1,5 +1,5 @@
 import { test, expect, describe } from 'bun:test';
-import { truncateToolOutput, MAX_TOOL_OUTPUT_CHARS, buildSystemPrompt, research } from '../../src/server/processor/director';
+import { truncateToolOutput, MAX_TOOL_OUTPUT_CHARS, buildSystemPrompt, research, stepLimitWarningThreshold } from '../../src/server/processor/director';
 import { isFirstRunEasterEgg } from '../../src/server/utils';
 import { MEMORY_RECALL_KIND } from '../../src/server/memory';
 import type { ATIFTrajectory, ATIFStep } from '../../src/server/processor/conversation/atif/atif.types';
@@ -114,6 +114,16 @@ describe('truncateToolOutput', () => {
             // Image unchanged
             expect(result[2]!['data']).toBe('imgdata');
         });
+    });
+});
+
+describe('stepLimitWarningThreshold', () => {
+    // The warning tells the model to wind down, so its window stays a short tail
+    // instead of growing with the limit.
+    test('warns over a short tail at any limit', () => {
+        expect(stepLimitWarningThreshold(10)).toBe(9);
+        expect(stepLimitWarningThreshold(100)).toBe(90);
+        expect(stepLimitWarningThreshold(1000)).toBe(990);
     });
 });
 

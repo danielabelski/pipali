@@ -725,6 +725,11 @@ async function resolveProviderToolSearchMode(chatModelId?: number, user?: typeof
     }
 }
 
+/** First step that carries the step-limit warning: the last tenth of a run, at most 10 steps. */
+export function stepLimitWarningThreshold(maxIterations: number): number {
+    return maxIterations - Math.min(10, Math.ceil(maxIterations * 0.1));
+}
+
 /**
  * Pick the next tool to use based on the current query and previous iterations
  */
@@ -761,10 +766,9 @@ async function pickNextTool(
         s => s.source === 'system' && s.extra?.kind !== MEMORY_RECALL_KIND);
     const isFirstIteration = !hasSystemStep;
 
-    // Inject iteration warning when at 90%+ of max iterations
     // Warning is stably inserted after threshold step to preserve context cache.
     // Warning is only shown to model, not persisted in DB
-    const iterationThreshold = Math.floor(maxIterations * 0.9) - 1;
+    const iterationThreshold = stepLimitWarningThreshold(maxIterations);
     let messages: ATIFTrajectory = config.chatHistory;
 
     if (currentIteration >= iterationThreshold && thresholdStepCount !== undefined) {
@@ -1186,7 +1190,7 @@ const MAX_RETRY_WARNINGS = 2;
  * Supports pause via abortSignal. Resume is handled by reloading chat history from DB.
  */
 export async function* research(config: ResearchConfig): AsyncGenerator<ResearchIteration> {
-    const iterationThreshold = Math.floor(config.maxIterations * 0.9) - 1;
+    const iterationThreshold = stepLimitWarningThreshold(config.maxIterations);
     let thresholdStepCount: number | undefined = config.thresholdStepCount;
     let retryWarnings = 0;
     let lastWarning = '';
