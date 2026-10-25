@@ -119,6 +119,19 @@ export function InputArea({
             : null,
         isProcessing,
     });
+    const shownPlaceholder = coachKey
+        ? t(coachKey)
+        : pendingConfirmation
+            ? (showHint && pendingConfirmation.options[0]
+                ? t('inputArea.tipConfirmation', { altKey: ALT_KEY, label: pendingConfirmation.options[0].label })
+                : pendingConfirmation.operation === 'ask_user'
+                    ? t('inputArea.customResponse')
+                    : t('inputArea.alternativeInstructions'))
+            : isStopped
+                ? t('inputArea.stopped')
+                : isProcessing
+                    ? t('inputArea.processing')
+                    : placeholder;
 
     // Close dropdowns when clicking outside
     useEffect(() => {
@@ -134,13 +147,14 @@ export function InputArea({
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [setShowModelDropdown]);
 
-    // Auto-resize textarea
+    // Auto-resize textarea. An empty one sizes to its placeholder, and voice
+    // hints change with no input and wrap on a phone.
     useEffect(() => {
         if (textareaRef.current) {
             textareaRef.current.style.height = 'auto';
             textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 200) + 'px';
         }
-    }, [input, textareaRef]);
+    }, [input, shownPlaceholder, textareaRef]);
 
     return (
         <footer className="input-area">
@@ -241,21 +255,7 @@ export function InputArea({
                             onKeyDown(e);
                         }}
                         className={coachKey ? 'voice-coached' : undefined}
-                        placeholder={
-                            coachKey
-                                ? t(coachKey)
-                                : pendingConfirmation
-                                    ? (showHint && pendingConfirmation.options[0]
-                                        ? t('inputArea.tipConfirmation', { altKey: ALT_KEY, label: pendingConfirmation.options[0].label })
-                                        : pendingConfirmation.operation === 'ask_user'
-                                            ? t('inputArea.customResponse')
-                                            : t('inputArea.alternativeInstructions'))
-                                    : isStopped
-                                        ? t('inputArea.stopped')
-                                        : isProcessing
-                                            ? t('inputArea.processing')
-                                            : placeholder
-                        }
+                        placeholder={shownPlaceholder}
                         rows={1}
                         disabled={!isConnected}
                         autoFocus
