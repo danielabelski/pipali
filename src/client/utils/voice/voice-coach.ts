@@ -64,7 +64,7 @@ export function voiceCoachKey({ mode, status, pending, isProcessing }: VoiceCoac
         case 'idle':
         case 'transcribing':
             // Idle is open context. It may hold an already-heard confirmation,
-            // where the standing "Pipali…" hint correctly opens a reply turn.
+            // where the standing "Hey Pipali…" hint correctly opens a reply turn.
             // Transcribing is already past the point any tail phrase applies.
             break;
     }

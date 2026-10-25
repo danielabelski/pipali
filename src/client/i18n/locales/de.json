@@ -285,7 +285,7 @@
         },
         "modeMenu": {
             "title": "Sprachmodus",
-            "spokenHint": "Sage jederzeit \"Pipali, speak freely\" oder \"Pipali, ask first\""
+            "spokenHint": "Sage jederzeit \"Hey Pipali, speak freely\", \"Hey Pipali, ask first\" oder \"Hey Pipali, stop listening\""
         },
         "enabledHint": "Solange der Sprachmodus aktiv ist, wird Sprache in der Nähe dieses Geräts transkribiert, um zu prüfen, ob du Pipali ansprichst; nicht adressierte Sprache wird verworfen und nie gespeichert.",
         "gender": {
@@ -295,21 +295,21 @@
             "male": "Männlich"
         },
         "status": {
-            "idle": "Wartet auf \"Pipali…\" – zum Sprechen tippen",
+            "idle": "Wartet auf \"Hey Pipali…\" – zum Sprechen tippen",
             "dormant": "Sprachmodus schläft – zum Aufwecken tippen",
-            "announced": "Pipali möchte etwas sagen – sage \"Pipali, go ahead\" oder tippe",
+            "announced": "Pipali möchte etwas sagen – sage \"Hey Pipali, go ahead\" oder tippe",
             "speaking": "Spricht – zum Antworten tippen",
             "listening": "Hört zu – zum Senden tippen",
             "transcribing": "Transkribiert…"
         },
         "coach": {
-            "idle": "Sage \"Pipali…\" zum Sprechen – oder tippe hier",
-            "idleWorking": "Arbeitet – sage \"Pipali…\" zum Umlenken, \"Pipali, stop\" zum Abbrechen",
+            "idle": "Sage \"Hey Pipali…\" zum Sprechen – oder tippe hier",
+            "idleWorking": "Sage \"Hey Pipali…\" zum Umlenken, \"Hey Pipali, stop\" zum Abbrechen",
             "dormant": "Sprachmodus schläft – tippe auf das Mikrofon zum Aufwecken",
-            "goAheadPending": "Pipali hat etwas für dich – sage \"Pipali, go ahead\"",
-            "goAheadResult": "Deine Ergebnisse sind fertig – sage \"Pipali, go ahead\" zum Anhören",
-            "speaking": "Sage \"Pipali…\", um zu unterbrechen – oder \"Pipali, stop\" für Ruhe",
-            "listening": "Sage \"send it\", wenn du fertig bist, \"scratch that\" zum Neuanfangen",
+            "goAheadPending": "Pipali hat etwas für dich – sage \"Hey Pipali, go ahead\"",
+            "goAheadResult": "Deine Ergebnisse sind fertig – sage \"Hey Pipali, go ahead\" zum Anhören",
+            "speaking": "Sage \"Hey Pipali…\", um zu unterbrechen – oder \"Hey Pipali, stop\" für Ruhe",
+            "listening": "Sage \"send it\", wenn du fertig bist, \"scratch that\" zum Neuanfangen, \"stop listening\" zum Abbrechen",
             "listeningDecision": "Sage \"yes\", \"no\" oder gib eigene Anweisungen",
             "listeningQuestion": "Antworte laut – sage \"send it\", wenn du fertig bist"
         }

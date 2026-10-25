@@ -285,7 +285,7 @@
         },
         "modeMenu": {
             "title": "语音模式",
-            "spokenHint": "随时可以说 \"Pipali, speak freely\" 或 \"Pipali, ask first\""
+            "spokenHint": "随时可以说 \"Hey Pipali, speak freely\"、\"Hey Pipali, ask first\" 或 \"Hey Pipali, stop listening\""
         },
         "enabledHint": "语音模式开启期间，设备附近的语音会被转写，以判断你是否在呼唤 Pipali；未呼唤 Pipali 的语音会被丢弃，绝不存储。",
         "gender": {
@@ -295,21 +295,21 @@
             "male": "男声"
         },
         "status": {
-            "idle": "等待 \"Pipali…\" 唤醒——点按说话",
+            "idle": "等待 \"Hey Pipali…\" 唤醒——点按说话",
             "dormant": "语音已休眠——点按唤醒",
-            "announced": "Pipali 有话要说——说 \"Pipali, go ahead\" 或点按",
+            "announced": "Pipali 有话要说——说 \"Hey Pipali, go ahead\" 或点按",
             "speaking": "正在朗读——点按回复",
             "listening": "正在聆听——点按发送",
             "transcribing": "转写中…"
         },
         "coach": {
-            "idle": "说 \"Pipali…\" 开始说话——也可以直接输入",
-            "idleWorking": "正在处理——说 \"Pipali…\" 可调整方向，说 \"Pipali, stop\" 可中止",
+            "idle": "说 \"Hey Pipali…\" 开始说话——也可以直接输入",
+            "idleWorking": "说 \"Hey Pipali…\" 可调整方向，说 \"Hey Pipali, stop\" 可中止",
             "dormant": "语音已休眠——点击麦克风唤醒",
-            "goAheadPending": "Pipali 有事要告诉你——说 \"Pipali, go ahead\"",
-            "goAheadResult": "结果已就绪——说 \"Pipali, go ahead\" 收听",
-            "speaking": "说 \"Pipali…\" 即可打断——或说 \"Pipali, stop\" 让它安静",
-            "listening": "说完后说 \"send it\"，想重说就说 \"scratch that\"",
+            "goAheadPending": "Pipali 有事要告诉你——说 \"Hey Pipali, go ahead\"",
+            "goAheadResult": "结果已就绪——说 \"Hey Pipali, go ahead\" 收听",
+            "speaking": "说 \"Hey Pipali…\" 即可打断——或说 \"Hey Pipali, stop\" 让它安静",
+            "listening": "说完后说 \"send it\"，想重说就说 \"scratch that\"，想取消就说 \"stop listening\"",
             "listeningDecision": "说 \"yes\"、\"no\"，或给出你自己的指示",
             "listeningQuestion": "直接说出答案——说完后说 \"send it\""
         }

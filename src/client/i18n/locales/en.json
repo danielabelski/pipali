@@ -112,7 +112,7 @@
         },
         "modeMenu": {
             "title": "Voice mode",
-            "spokenHint": "Say \"Pipali, speak freely\" or \"Pipali, ask first\" anytime"
+            "spokenHint": "Say \"Hey Pipali, speak freely\", \"Hey Pipali, ask first\" or \"Hey Pipali, stop listening\" anytime"
         },
         "enabledHint": "While voice is on, speech near this device is transcribed to check whether you're addressing Pipali; unaddressed speech is discarded and never stored.",
         "gender": {
@@ -122,21 +122,21 @@
             "male": "Male"
         },
         "status": {
-            "idle": "Listening for \"Pipali…\" — tap to talk",
+            "idle": "Listening for \"Hey Pipali…\" — tap to talk",
             "dormant": "Voice asleep — tap to wake",
-            "announced": "Pipali has something to say — say \"Pipali, go ahead\" or tap",
+            "announced": "Pipali has something to say — say \"Hey Pipali, go ahead\" or tap",
             "speaking": "Speaking — tap to reply",
             "listening": "Listening — tap to send",
             "transcribing": "Transcribing…"
         },
         "coach": {
-            "idle": "Say \"Pipali…\" to talk — or type here",
-            "idleWorking": "Working — say \"Pipali…\" to redirect, \"Pipali, stop\" to call it off",
+            "idle": "Say \"Hey Pipali…\" to talk — or type here",
+            "idleWorking": "Say \"Hey Pipali…\" to redirect, \"Hey Pipali, stop\" to call it off",
             "dormant": "Voice is asleep — tap the mic to wake it",
-            "goAheadPending": "Pipali has something for you — say \"Pipali, go ahead\"",
-            "goAheadResult": "Your results are ready — say \"Pipali, go ahead\" to hear them",
-            "speaking": "Say \"Pipali…\" to cut in — or \"Pipali, stop\" for quiet",
-            "listening": "Say \"send it\" when you're done, \"scratch that\" to redo",
+            "goAheadPending": "Pipali has something for you — say \"Hey Pipali, go ahead\"",
+            "goAheadResult": "Your results are ready — say \"Hey Pipali, go ahead\" to hear them",
+            "speaking": "Say \"Hey Pipali…\" to cut in — or \"Hey Pipali, stop\" for quiet",
+            "listening": "Say \"send it\" when you're done, \"scratch that\" to redo, \"stop listening\" to cancel",
             "listeningDecision": "Say \"yes\", \"no\", or give your own instructions",
             "listeningQuestion": "Answer out loud — say \"send it\" when you're done"
         }

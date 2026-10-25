@@ -285,7 +285,7 @@
         },
         "modeMenu": {
             "title": "Mode vocal",
-            "spokenHint": "Dis \"Pipali, speak freely\" ou \"Pipali, ask first\" à tout moment"
+            "spokenHint": "Dis \"Hey Pipali, speak freely\", \"Hey Pipali, ask first\" ou \"Hey Pipali, stop listening\" à tout moment"
         },
         "enabledHint": "Quand le mode vocal est actif, la parole captée près de cet appareil est transcrite pour vérifier si tu t'adresses à Pipali ; la parole non adressée est ignorée et jamais conservée.",
         "gender": {
@@ -295,21 +295,21 @@
             "male": "Masculine"
         },
         "status": {
-            "idle": "À l'écoute de \"Pipali…\" — appuie pour parler",
+            "idle": "À l'écoute de \"Hey Pipali…\" — appuie pour parler",
             "dormant": "Mode vocal en veille — appuie pour le réveiller",
-            "announced": "Pipali a quelque chose à dire — dis \"Pipali, go ahead\" ou appuie",
+            "announced": "Pipali a quelque chose à dire — dis \"Hey Pipali, go ahead\" ou appuie",
             "speaking": "Lecture en cours — appuie pour répondre",
             "listening": "À l'écoute — appuie pour envoyer",
             "transcribing": "Transcription…"
         },
         "coach": {
-            "idle": "Dis \"Pipali…\" pour parler — ou écris ici",
-            "idleWorking": "En cours — dis \"Pipali…\" pour réorienter, \"Pipali, stop\" pour tout arrêter",
+            "idle": "Dis \"Hey Pipali…\" pour parler — ou écris ici",
+            "idleWorking": "Dis \"Hey Pipali…\" pour réorienter, \"Hey Pipali, stop\" pour tout arrêter",
             "dormant": "Le mode vocal dort — touche le micro pour le réveiller",
-            "goAheadPending": "Pipali a quelque chose pour toi — dis \"Pipali, go ahead\"",
-            "goAheadResult": "Tes résultats sont prêts — dis \"Pipali, go ahead\" pour les entendre",
-            "speaking": "Dis \"Pipali…\" pour interrompre — ou \"Pipali, stop\" pour le silence",
-            "listening": "Dis \"send it\" quand tu as fini, \"scratch that\" pour recommencer",
+            "goAheadPending": "Pipali a quelque chose pour toi — dis \"Hey Pipali, go ahead\"",
+            "goAheadResult": "Tes résultats sont prêts — dis \"Hey Pipali, go ahead\" pour les entendre",
+            "speaking": "Dis \"Hey Pipali…\" pour interrompre — ou \"Hey Pipali, stop\" pour le silence",
+            "listening": "Dis \"send it\" quand tu as fini, \"scratch that\" pour recommencer, \"stop listening\" pour annuler",
             "listeningDecision": "Dis \"yes\", \"no\", ou donne tes propres instructions",
             "listeningQuestion": "Réponds à voix haute — dis \"send it\" quand tu as fini"
         }

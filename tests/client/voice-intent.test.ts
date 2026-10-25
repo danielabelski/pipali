@@ -1,5 +1,8 @@
 import { test, expect, describe } from 'bun:test';
+import { Glob } from 'bun';
+import path from 'path';
 import { parseConfirmationIntent, parseGoAhead, parseAddressing, parseStopWork, normalizeUtterance, routeOpenVoice } from '../../src/client/utils/voice/voice-intent';
+import { isHallucination } from '../../src/client/utils/voice/voice-turn';
 
 describe('parseStopWork', () => {
     test('recognizes the stop vocabulary', () => {
@@ -232,5 +235,33 @@ describe('parseConfirmationIntent (question / ask_user)', () => {
         expect(parseConfirmationIntent('stop listening', opts)).toEqual({ type: 'stop_listening' });
         expect(parseConfirmationIntent('repeat', opts)).toEqual({ type: 'repeat' });
         expect(parseConfirmationIntent('speak freely', opts)).toEqual({ type: 'set_mode', mode: 'speak_freely' });
+    });
+});
+
+// The voice hints quote phrases for the user to say aloud, in every locale.
+// Each one has to get through the open-room gate and name a command the app
+// acts on, or the hint teaches something that does nothing.
+const localesDir = path.resolve(import.meta.dir, '../../src/client/i18n/locales');
+const strings = (node: unknown): string[] =>
+    typeof node === 'string' ? [node] : Object.values(node as object).flatMap(strings);
+const taught = new Set<string>();
+for (const file of new Glob('*.json').scanSync(localesDir)) {
+    const { voice } = await import(path.join(localesDir, file));
+    for (const hint of strings(voice)) {
+        for (const [, phrase] of hint.matchAll(/["「]([^"」]*Pipali[^"」]*)["」]/g)) taught.add(phrase!);
+    }
+}
+
+describe('phrases the voice hints teach', () => {
+    const isCommand = (payload: string) => parseStopWork(payload) || parseGoAhead(payload)
+        || ['stop_listening', 'set_mode'].includes(parseConfirmationIntent(payload, { isQuestion: false }).type);
+
+    test('each addresses Pipali with a command it understands', () => {
+        expect(taught.size).toBeGreaterThan(0);
+        const misunderstood = [...taught].filter((phrase) => {
+            const { addressed, payload } = parseAddressing(phrase);
+            return isHallucination(phrase) || !addressed || (payload !== '' && !isCommand(payload));
+        });
+        expect(misunderstood).toEqual([]);
     });
 });
